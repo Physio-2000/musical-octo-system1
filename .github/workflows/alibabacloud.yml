@@ -5,35 +5,41 @@ on:
     branches: ["main"]
   workflow_dispatch:
 
-env:
-  REGION_ID: cn-hangzhou
-  REGISTRY: registry.cn-hangzhou.aliyuncs.com
-  NAMESPACE: namespace
-  IMAGE: repo
-  TAG: ${{ github.sha }}
-  ACK_CLUSTER_ID: clusterID
-  ACK_DEPLOYMENT_NAME: nginx-deployment
-
-permissions:
-  contents: read
-
 jobs:
-  build:
+  validate:
     runs-on: ubuntu-latest
-    environment: production
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install kubectl
+      - name: Validate repository layout
         run: |
-          curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/
+          echo "Validating repository setup..."
+          ls -la
+          if [ -f Dockerfile ]; then
+            echo "Dockerfile found"
+          else
+            echo "Warning: Dockerfile not found; deployment job will still be skipped until configured."
+          fi
 
-      - name: Login to ACR with the AccessKey pair
-        if: ${{ secrets.ACCESS_KEY_ID != '' && secrets.ACCESS_KEY_SECRET != '' }}
+  deploy:
+    needs: validate
+    if: ${{ secrets.ACCESS_KEY_ID != '' && secrets.ACCESS_KEY_SECRET != '' }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      REGION_ID: cn-hangzhou
+      REGISTRY: registry.cn-hangzhou.aliyuncs.com
+      NAMESPACE: namespace
+      IMAGE: repo
+      TAG: ${{ github.sha }}
+      ACK_CLUSTER_ID: clusterID
+      ACK_DEPLOYMENT_NAME: nginx-deployment
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to ACR
         uses: aliyun/acr-login@v1
         with:
           region-id: "${{ env.REGION_ID }}"
@@ -41,13 +47,11 @@ jobs:
           access-key-secret: "${{ secrets.ACCESS_KEY_SECRET }}"
 
       - name: Build and push image to ACR
-        if: ${{ secrets.ACCESS_KEY_ID != '' && secrets.ACCESS_KEY_SECRET != '' }}
         run: |
           docker build -t "$REGISTRY/$NAMESPACE/$IMAGE:$TAG" .
           docker push "$REGISTRY/$NAMESPACE/$IMAGE:$TAG"
 
-      - name: Set K8s context
-        if: ${{ secrets.ACCESS_KEY_ID != '' && secrets.ACCESS_KEY_SECRET != '' }}
+      - name: Set ACK context
         uses: aliyun/ack-set-context@v1
         with:
           access-key-id: "${{ secrets.ACCESS_KEY_ID }}"
@@ -55,7 +59,6 @@ jobs:
           cluster-id: "${{ env.ACK_CLUSTER_ID }}"
 
       - name: Deploy image to ACK
-        if: ${{ secrets.ACCESS_KEY_ID != '' && secrets.ACCESS_KEY_SECRET != '' }}
         run: |
           kubectl set image deployment/${ACK_DEPLOYMENT_NAME} ${ACK_DEPLOYMENT_NAME}=$REGISTRY/$NAMESPACE/$IMAGE:$TAG
           kubectl rollout status deployment/${ACK_DEPLOYMENT_NAME} --timeout=180s

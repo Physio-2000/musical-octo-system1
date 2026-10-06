@@ -8,6 +8,13 @@ This project is licensed under the MIT License for general open-source, public, 
 
 The full license text is available in the repository at `LICENSE`.
 
-For commercial, institutional, regulated, or contractual use, including warranty-backed deployments, separate written terms may apply. A supplemental addendum is provided in `LICENSE-WARRANTY.md` and is intended to clarify warranty, liability, support, and compliance terms for such scenarios.
+For commercial, regulated, institutional, or contractual use, separate written terms may apply. The repository includes the following supporting legal documents:
 
-The MIT License remains the governing license for general public use. The warranty addendum does not replace the MIT License for open-source distribution; it supplements it for commercial or regulated use where the parties agree to additional terms in writing.
+- `LICENSE-WARRANTY.md` — supplemental warranty, liability, and commercial terms framework
+- `LICENSE-COMMERCIAL.md` — repo-facing commercial summary
+- `COMMERCIAL-LICENSE-CURACAO.md` — formal Curaçao-law commercial template
+- `PAYMENT-AND-BANK-ADDENDUM.md` — payment verification, bank details, and activation protocol
+- `PAYMENT-EXAMPLE-INVOICE.md` — example commercial invoice template
+- `LICENSE-ACTIVATION-NOTICE.md` — activation notice template
+
+The MIT License remains the governing arrangement for general public use. Commercial rights are not granted by the MIT License alone and require separate written terms, clear payment confirmation, and activation in accordance with the payment addendum.

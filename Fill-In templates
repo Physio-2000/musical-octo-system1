@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""
+fill_templates.py
+Reads commercial_form.json and replaces placeholders in files under templates/
+Writes filled files under filled/
+Usage: python fill_templates.py commercial_form.json
+"""
+
+import sys
+import re
+import os
+import json
+from pathlib import Path
+
+def normalize_key(s):
+    # Remove non-alphanumeric, uppercase
+    return re.sub(r'[^A-Za-z0-9]', '', s).upper()
+
+def build_lookup(data):
+    lookup = {}
+    for k, v in data.items():
+        lookup[normalize_key(k)] = str(v)
+    return lookup
+
+def replace_placeholders(text, lookup):
+    # Find bracketed placeholders like [PLACEHOLDER] or [PLACEHOLDER-1] or {PLACEHOLDER}
+    def repl(match):
+        token = match.group(1)
+        key = normalize_key(token)
+        if key in lookup:
+            return lookup[key]
+        else:
+            # leave original if not provided, but mark with <<MISSING:...>> for visibility
+            return f"<<MISSING:{token}>>"
+    # Patterns: [TOKEN], {TOKEN}, <<TOKEN>>  -- you'll see bracket forms in your templates
+    patterns = [
+        re.compile(r'\[([^\]]+)\]'),
+        re.compile(r'\{([^}]+)\}'),
+        re.compile(r'<<([^>]+)>>')
+    ]
+    for p in patterns:
+        text = p.sub(repl, text)
+    return text
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: python fill_templates.py commercial_form.json")
+        sys.exit(1)
+    formfile = Path(sys.argv[1])
+    if not formfile.exists():
+        print("Form file not found:", formfile)
+        sys.exit(1)
+
+    data = json.loads(formfile.read_text(encoding='utf-8'))
+    lookup = build_lookup(data)
+
+    templates_dir = Path('templates')
+    filled_dir = Path('filled')
+    filled_dir.mkdir(exist_ok=True)
+
+    if not templates_dir.exists():
+        print("templates/ directory not found. Put your template files in templates/")
+        sys.exit(1)
+
+    for t in templates_dir.rglob('*'):
+        if t.is_file():
+            rel = t.relative_to(templates_dir)
+            outpath = filled_dir / rel
+            outpath.parent.mkdir(parents=True, exist_ok=True)
+            content = t.read_text(encoding='utf-8')
+            filled = replace_placeholders(content, lookup)
+            outpath.write_text(filled, encoding='utf-8')
+            print("Wrote", outpath)
+
+if __name__ == '__main__':
+    main()

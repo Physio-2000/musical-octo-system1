@@ -1,0 +1,4 @@
+on:
+  schedule:
+    - cron: '0 12 10 10 *'  # October 10 at 12:00 PM UTC
+    - cron: '0 12 * * MON'  # Adjust for recurring 3-week pattern
